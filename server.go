@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"server/URWWPacketProtocol"
 	"server/logutil"
 	"strconv"
+
 	"github.com/golang/protobuf/proto"
-	"log"
-	"server/URWWPacketProtocol"
 )
 
+// protocol header
 const (
 	ConstHeader       = "com.ur.URPackageHeader"
 	ConstHeaderLength = 22
@@ -59,7 +60,7 @@ func handleClient(conn net.Conn) {
 	defer conn.Close()
 
 	for {
-		read_len, err := conn.Read(request)
+		readlen, err := conn.Read(request)
 
 		if err != nil {
 			fmt.Println(err)
@@ -67,13 +68,13 @@ func handleClient(conn net.Conn) {
 			break
 		}
 
-		if read_len == 0 {
+		if readlen == 0 {
 			logutil.Writelog("send content break:")
 			break
 		} else {
 			// content := string(request)
 
-			Unpack(request, read_len)
+			Unpack(request, readlen)
 
 			// messageData := BytesToInt(request[0:4])
 
@@ -106,6 +107,7 @@ func handleClient(conn net.Conn) {
 	logutil.Writelog("handle request over")
 }
 
+// Unpack the package
 func Unpack(buffer []byte, length int) {
 
 	logutil.Writelog("recv package length to int : " + strconv.Itoa(length))
@@ -125,8 +127,7 @@ func Unpack(buffer []byte, length int) {
 
 		// logutil.Writelog("send tagString : " + tagString)
 		// logutil.Writelog("send tagLength to int : " + strconv.Itoa(tagLength))
-
-		log.Println("%d", tagLength)
+		// log.Println("%d", tagLength)
 
 		if length < i+ConstHeaderLength+constTagLength+ConstdataLength {
 			break
@@ -150,20 +151,21 @@ func Unpack(buffer []byte, length int) {
 		uri := message.GetUri()
 
 		switch uri {
-		case kUriPLoginReq:
+		case URWWPacketProtocol.URPacketType_kUriPLoginReq:
 			logutil.Writelog("recv  kUriPLoginReq")
 			logutil.Writelog(message.GetLoginReq().GetPassport())
 			logutil.Writelog(message.GetLoginReq().GetPassword())
 
-			result := pack()
-			conn.Write(result)
+			// result := pack()
+			// conn.Write(result)
 
-		case kUriPLogoutReq:
+		case URWWPacketProtocol.URPacketType_kUriPLogoutReq:
 			logutil.Writelog("recv kUriPLogoutReq")
 		}
 	}
 }
 
+// IntToBytes int 转化
 func IntToBytes(n int) []byte {
 	x := int32(n)
 
@@ -172,9 +174,10 @@ func IntToBytes(n int) []byte {
 	return bytesBuffer.Bytes()
 }
 
+// BytesToInt 转化 int
 func BytesToInt(b []byte) int {
 	bytesBuffer := bytes.NewBuffer(b)
-	
+
 	var x int32
 	binary.Read(bytesBuffer, binary.BigEndian, &x)
 
@@ -184,6 +187,7 @@ func BytesToInt(b []byte) int {
 	return int(x)
 }
 
+// TagBytesToInt 将byte变为int
 func TagBytesToInt(b []byte) int {
 	bytesBuffer := bytes.NewBuffer(b)
 
